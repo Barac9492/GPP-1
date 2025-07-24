@@ -43,6 +43,9 @@ jobs:
         ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
       run: npx tsx agents/gpp-agent.agent.ts
       
+    - name: Create logs directory
+      run: mkdir -p logs
+      
     - name: Upload logs as artifacts
       if: always()
       uses: actions/upload-artifact@v4
@@ -53,12 +56,11 @@ jobs:
           secrets/
         retention-days: 30
         
-    - name: Notify on failure
+    - name: Notify on failure (Slack)
       if: failure()
       uses: 8398a7/action-slack@v3
       with:
         status: ${{ job.status }}
         channel: '#gpp-agent'
         webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} 
+      continue-on-error: true 
