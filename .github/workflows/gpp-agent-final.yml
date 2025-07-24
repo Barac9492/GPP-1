@@ -31,20 +31,7 @@ jobs:
         cd gpp-agent-temp
         
         # Create package.json for agent
-        echo '{
-          "name": "gpp-agent-temp",
-          "version": "1.0.0",
-          "dependencies": {
-            "@anthropic-ai/sdk": "^0.18.0",
-            "firebase-admin": "^12.0.0",
-            "nodemailer": "^6.9.0",
-            "puppeteer": "^21.0.0"
-          },
-          "devDependencies": {
-            "@types/nodemailer": "^6.4.0",
-            "@types/node": "^20.0.0"
-          }
-        }' > package.json
+        cp ../agents/package.json ./
         
         # Copy only JavaScript files to temp directory
         cp -r ../agents ./
@@ -76,7 +63,7 @@ jobs:
           exit 1
         fi
         
-    - name: Install dependencies
+    - name: Install dependencies in temp dir
       run: |
         cd gpp-agent-temp
         npm install --legacy-peer-deps
@@ -121,8 +108,12 @@ jobs:
             console.log('✅ fs module loaded');
             
             console.log('Testing puppeteer...');
-            const puppeteer = require('puppeteer');
-            console.log('✅ puppeteer module loaded');
+            const puppeteer = require('puppeteer-extra');
+            console.log('✅ puppeteer-extra module loaded');
+            
+            console.log('Testing openai...');
+            const openai = require('openai');
+            console.log('✅ openai module loaded');
             
             console.log('Testing firebase-admin...');
             const admin = require('firebase-admin');
@@ -135,7 +126,7 @@ jobs:
         
     - name: Run GPP Agent (JavaScript only)
       env:
-        CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         GMAIL_USER: ${{ secrets.GMAIL_USER }}
         GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
@@ -143,7 +134,7 @@ jobs:
         cd gpp-agent-temp
         echo "🚀 Starting GPP Agent (JavaScript version)..."
         echo "Environment variables:"
-        echo "CLAUDE_API_KEY: ${CLAUDE_API_KEY:0:10}..."
+        echo "OPENAI_API_KEY: ${OPENAI_API_KEY:0:10}..."
         echo "GMAIL_USER: $GMAIL_USER"
         echo "ADMIN_EMAIL: $ADMIN_EMAIL"
         
