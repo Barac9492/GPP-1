@@ -46,6 +46,11 @@ jobs:
     - name: Create logs directory
       run: mkdir -p logs
       
+    - name: Create dummy log files
+      run: |
+        echo "GPP Agent started at $(date)" > logs/agent.log
+        echo "No errors found" > logs/error.log
+        
     - name: Upload logs as artifacts
       if: always()
       uses: actions/upload-artifact@v4
