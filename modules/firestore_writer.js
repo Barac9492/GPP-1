@@ -18,19 +18,30 @@ try {
 }
 
 const db = admin.firestore();
+db.settings({ ignoreUndefinedProperties: true });
+
+function sanitizeData(data) {
+  // Remove or nullify undefined fields
+  Object.keys(data).forEach(key => {
+    if (data[key] === undefined) {
+      data[key] = null; // Or: delete data[key];
+    }
+  });
+  return data;
+}
 
 async function uploadToFirestore(product, priceData) {
   try {
     console.log(`📝 Uploading data for: ${product.name}`);
     
-    const docData = {
+    const docData = sanitizeData({
       productName: product.name,
       category: product.category,
       description: product.description,
       prices: priceData,
       scrapedAt: admin.firestore.FieldValue.serverTimestamp(),
       source: 'gpp-agent'
-    };
+    });
     
     // Add to scraped_products collection
     const docRef = await db.collection('scraped_products').add(docData);
