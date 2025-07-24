@@ -75,7 +75,15 @@ async function runGPPAgent() {
         const priceData = await scrapePrices(product, browser);
 
         if (priceData && Object.keys(priceData).length > 0) {
-          await uploadToFirestore({ name: product }, priceData);
+          // Create a proper product object with category detection
+          const productObj = {
+            name: product,
+            category: detectProductCategory(product),
+            description: `Scraped product data for ${product}`,
+            source: 'gpp-agent'
+          };
+          
+          await uploadToFirestore(productObj, priceData);
           successes.push(product);
           console.log(`✅ Successfully processed: ${product}`);
         } else {
@@ -132,4 +140,29 @@ if (require.main === module) {
   runGPPAgent().catch(console.error);
 }
 
-module.exports = { runGPPAgent }; 
+module.exports = { runGPPAgent };
+
+// Helper function to detect product category
+function detectProductCategory(productName) {
+  const name = productName.toLowerCase();
+  
+  // Korean cosmetics
+  if (name.includes('cosmetic') || name.includes('skincare') || 
+      name.includes('serum') || name.includes('cream') || name.includes('mask') ||
+      name.includes('essence') || name.includes('toner') || name.includes('lotion') ||
+      name.includes('innisfree') || name.includes('laneige') || name.includes('missha') ||
+      name.includes('etude') || name.includes('cosrx') || name.includes('the face shop')) {
+    return 'cosmetic';
+  }
+  
+  // US IT products
+  if (name.includes('phone') || name.includes('laptop') || name.includes('computer') ||
+      name.includes('headphone') || name.includes('mouse') || name.includes('keyboard') ||
+      name.includes('samsung') || name.includes('apple') || name.includes('dell') ||
+      name.includes('sony') || name.includes('logitech') || name.includes('macbook') ||
+      name.includes('galaxy') || name.includes('iphone') || name.includes('xps')) {
+    return 'electronics';
+  }
+  
+  return 'unknown';
+} 

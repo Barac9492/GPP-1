@@ -21,32 +21,56 @@ const db = admin.firestore();
 db.settings({ ignoreUndefinedProperties: true });
 
 function sanitizeData(data) {
-  // Remove or nullify undefined fields
+  // Create a new object to avoid mutating the original
+  const sanitized = {};
+  
   Object.keys(data).forEach(key => {
-    if (data[key] === undefined) {
-      data[key] = null; // Or: delete data[key];
+    let value = data[key];
+    
+    // Handle undefined values
+    if (value === undefined) {
+      value = null;
     }
+    // Handle null values in nested objects
+    else if (value && typeof value === 'object' && !Array.isArray(value)) {
+      value = sanitizeData(value);
+    }
+    // Handle arrays with undefined values
+    else if (Array.isArray(value)) {
+      value = value.map(item => item === undefined ? null : item);
+    }
+    
+    sanitized[key] = value;
   });
-  return data;
+  
+  return sanitized;
 }
 
 async function uploadToFirestore(product, priceData) {
   try {
     console.log(`📝 Uploading data for: ${product.name}`);
     
+    // Ensure all required fields have values
     const docData = sanitizeData({
-      productName: product.name,
-      category: product.category,
-      description: product.description,
-      prices: priceData,
+      productName: product.name || 'Unknown Product',
+      category: product.category || 'unknown',
+      description: product.description || `Scraped product data for ${product.name}`,
+      prices: priceData || {},
       scrapedAt: admin.firestore.FieldValue.serverTimestamp(),
-      source: 'gpp-agent'
+      source: product.source || 'gpp-agent',
+      status: 'active'
     });
+    
+    // Validate data before upload
+    if (!docData.productName || docData.productName === 'Unknown Product') {
+      throw new Error('Invalid product name');
+    }
     
     // Add to scraped_products collection
     const docRef = await db.collection('scraped_products').add(docData);
     
     console.log(`✅ Successfully uploaded to Firestore with ID: ${docRef.id}`);
+    console.log(`📊 Data summary: ${Object.keys(priceData || {}).length} price entries`);
     
     return {
       success: true,

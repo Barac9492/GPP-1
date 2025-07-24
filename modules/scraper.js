@@ -23,33 +23,28 @@ async function scrapePrices(productName, browser) {
     console.log(`🔍 Scraping prices for: ${productName}`);
     
     const priceData = {};
+    const category = detectCategory(productName);
     
     // Scrape Korean sites for cosmetics
-    if (productName.toLowerCase().includes('cosmetic') || 
-        productName.toLowerCase().includes('skincare') ||
-        productName.toLowerCase().includes('serum') ||
-        productName.toLowerCase().includes('cream') ||
-        productName.toLowerCase().includes('mask')) {
-      
+    if (category === 'cosmetic' || category === 'skincare') {
       console.log('🇰🇷 Scraping Korean cosmetic sites...');
       const koreaPrices = await scrapeKoreaSites(productName, browser);
       Object.assign(priceData, koreaPrices);
     }
     
     // Scrape US sites for IT products
-    if (productName.toLowerCase().includes('phone') ||
-        productName.toLowerCase().includes('laptop') ||
-        productName.toLowerCase().includes('computer') ||
-        productName.toLowerCase().includes('headphone') ||
-        productName.toLowerCase().includes('mouse') ||
-        productName.toLowerCase().includes('samsung') ||
-        productName.toLowerCase().includes('apple') ||
-        productName.toLowerCase().includes('dell') ||
-        productName.toLowerCase().includes('sony')) {
-      
+    if (category === 'electronics' || category === 'it') {
       console.log('🇺🇸 Scraping US IT sites...');
       const usPrices = await scrapeUSSites(productName, browser);
       Object.assign(priceData, usPrices);
+    }
+    
+    // If no specific category detected, try both
+    if (category === 'unknown') {
+      console.log('🌍 Scraping both Korean and US sites...');
+      const koreaPrices = await scrapeKoreaSites(productName, browser);
+      const usPrices = await scrapeUSSites(productName, browser);
+      Object.assign(priceData, koreaPrices, usPrices);
     }
     
     return priceData;
@@ -60,14 +55,42 @@ async function scrapePrices(productName, browser) {
   }
 }
 
+function detectCategory(productName) {
+  const name = productName.toLowerCase();
+  
+  // Korean cosmetics
+  if (name.includes('cosmetic') || name.includes('skincare') || 
+      name.includes('serum') || name.includes('cream') || name.includes('mask') ||
+      name.includes('essence') || name.includes('toner') || name.includes('lotion') ||
+      name.includes('innisfree') || name.includes('laneige') || name.includes('missha') ||
+      name.includes('etude') || name.includes('cosrx') || name.includes('the face shop')) {
+    return 'cosmetic';
+  }
+  
+  // US IT products
+  if (name.includes('phone') || name.includes('laptop') || name.includes('computer') ||
+      name.includes('headphone') || name.includes('mouse') || name.includes('keyboard') ||
+      name.includes('samsung') || name.includes('apple') || name.includes('dell') ||
+      name.includes('sony') || name.includes('logitech') || name.includes('macbook') ||
+      name.includes('galaxy') || name.includes('iphone') || name.includes('xps')) {
+    return 'electronics';
+  }
+  
+  return 'unknown';
+}
+
 async function scrapeKoreaSites(productName, browser) {
   const prices = {};
   
   for (const site of SITES.korea) {
     try {
-      const price = await scrapeSite(site, productName, browser);
-      if (price) {
-        prices[`${site}_korea`] = price;
+      const result = await scrapeSite(site, productName, browser);
+      if (result.price) {
+        prices[`${site}_korea`] = {
+          price: result.price,
+          category: result.category || 'unknown',
+          title: result.title || productName
+        };
       }
     } catch (error) {
       console.error(`❌ Failed to scrape ${site}:`, error.message);
@@ -82,9 +105,13 @@ async function scrapeUSSites(productName, browser) {
   
   for (const site of SITES.us) {
     try {
-      const price = await scrapeSite(site, productName, browser);
-      if (price) {
-        prices[`${site}_us`] = price;
+      const result = await scrapeSite(site, productName, browser);
+      if (result.price) {
+        prices[`${site}_us`] = {
+          price: result.price,
+          category: result.category || 'unknown',
+          title: result.title || productName
+        };
       }
     } catch (error) {
       console.error(`❌ Failed to scrape ${site}:`, error.message);
@@ -141,29 +168,80 @@ async function scrapeSite(site, productName, browser) {
     // Wait for content to load
     await page.waitForTimeout(Math.random() * 2000 + 1000);
     
-    // Improved price extraction logic
-    const price = await page.evaluate(() => {
-      const selectors = [
+    // Enhanced price and category extraction
+    const result = await page.evaluate(() => {
+      // Price extraction with more selectors
+      const priceSelectors = [
         '.a-price .a-offscreen', // Amazon
         '.priceView-hero-price span', // BestBuy
         '.prod-sale-price .total-price strong', // Coupang
-        '.price', '.prd_price', '.price_info', '.price-value', // Olive Young, Lotte
+        '.price', '.prd_price', '.price_info', '.price-value', // General
+        '.sale-price', '.current-price', '.product-price', // More general
+        '[data-price]', '[class*="price"]', // Attribute-based
       ];
-      for (const sel of selectors) {
+      
+      let price = null;
+      for (const sel of priceSelectors) {
         const el = document.querySelector(sel);
-        if (el && el.innerText.match(/[$₩]\d+/)) return el.innerText.trim();
+        if (el && el.innerText.match(/[$₩]\d+/)) {
+          price = el.innerText.trim();
+          break;
+        }
       }
+      
       // Fallback: 모든 엘리먼트에서 $/₩ 포함 텍스트 탐색
-      const priceElems = Array.from(document.querySelectorAll('*')).filter(el => el.textContent?.match(/[$₩]\d+/));
-      return priceElems[0]?.textContent?.trim() || null;
+      if (!price) {
+        const priceElems = Array.from(document.querySelectorAll('*')).filter(el => 
+          el.textContent?.match(/[$₩]\d+/) && el.textContent.length < 50
+        );
+        price = priceElems[0]?.textContent?.trim() || null;
+      }
+      
+      // Category extraction
+      const categorySelectors = [
+        '.breadcrumb', '.breadcrumbs', '.category-path',
+        '[data-category]', '.product-category', '.category-name',
+        'nav[aria-label*="breadcrumb"]', '.breadcrumb-item'
+      ];
+      
+      let category = null;
+      for (const sel of categorySelectors) {
+        const el = document.querySelector(sel);
+        if (el && el.innerText.trim()) {
+          category = el.innerText.trim();
+          break;
+        }
+      }
+      
+      // Product title extraction
+      const titleSelectors = [
+        'h1', '.product-title', '.product-name', '[data-product-name]',
+        '.title', '.product-heading', '.item-title'
+      ];
+      
+      let title = null;
+      for (const sel of titleSelectors) {
+        const el = document.querySelector(sel);
+        if (el && el.innerText.trim()) {
+          title = el.innerText.trim();
+          break;
+        }
+      }
+      
+      return { price, category, title };
     });
-    if (price) console.log(`Found price: ${price}`);
     
-    return price;
+    if (result.price) {
+      console.log(`Found price: ${result.price}`);
+      if (result.category) console.log(`Found category: ${result.category}`);
+      if (result.title) console.log(`Found title: ${result.title}`);
+    }
+    
+    return result;
     
   } catch (error) {
     console.error(`❌ Error scraping ${site}:`, error.message);
-    return null;
+    return { price: null, category: null, title: null };
   } finally {
     if (page) {
       await page.close();
