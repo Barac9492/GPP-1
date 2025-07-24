@@ -19,55 +19,83 @@ jobs:
       with:
         node-version: '18'
         
-    - name: Create agent directory and package.json
+    - name: Clear any cached files
+      run: |
+        echo "🧹 Clearing any cached files..."
+        find . -name "*.ts" -type f -delete || echo "No TypeScript files found"
+        find . -name "node_modules" -type d -exec rm -rf {} + || echo "No node_modules found"
+        
+    - name: Create isolated environment
       run: |
         mkdir -p gpp-agent-temp
         cd gpp-agent-temp
+        
+        # Create package.json for agent
         echo '{
           "name": "gpp-agent-temp",
           "version": "1.0.0",
           "dependencies": {
             "@anthropic-ai/sdk": "^0.18.0",
-            "ai-functions": "^0.1.0",
             "firebase-admin": "^12.0.0",
             "nodemailer": "^6.9.0",
             "puppeteer": "^21.0.0"
           },
           "devDependencies": {
             "@types/nodemailer": "^6.4.0",
-            "@types/node": "^20.0.0",
-            "tsx": "^4.0.0",
-            "typescript": "^5.0.0"
+            "@types/node": "^20.0.0"
           }
         }' > package.json
         
-    - name: Install agent dependencies
+        # Copy only JavaScript files to temp directory
+        cp -r ../agents ./
+        cp -r ../modules ./
+        cp -r ../secrets ./
+        mkdir -p logs
+        
+        # Remove TypeScript files to avoid conflicts
+        rm -f agents/gpp-agent.agent.ts
+        rm -f agents/gpp-agent.agent.ts.bak
+        rm -f modules/*.ts
+        
+        # Verify only JS files exist
+        echo "📁 Files in agents directory:"
+        ls -la agents/
+        echo "📁 Files in modules directory:"
+        ls -la modules/
+        
+        # Verify gpp-agent.js exists
+        if [ -f "agents/gpp-agent.js" ]; then
+          echo "✅ gpp-agent.js found"
+        else
+          echo "❌ gpp-agent.js not found!"
+          exit 1
+        fi
+        
+        # Verify no TypeScript files exist
+        if [ -f "agents/gpp-agent.agent.ts" ]; then
+          echo "❌ TypeScript file still exists!"
+          exit 1
+        fi
+        
+    - name: Install dependencies
       run: |
         cd gpp-agent-temp
         npm install --legacy-peer-deps
         
-    - name: Debug - Check installed packages
-      run: |
-        cd gpp-agent-temp
-        echo "Installed packages:"
-        npm list --depth=0
-        echo "Checking for ai-functions:"
-        npm list ai-functions || echo "ai-functions not found"
-        
-    - name: Install Puppeteer dependencies (Ubuntu 22.04 compatible)
+    - name: Install Puppeteer dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y ca-certificates fonts-liberation libasound2 libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libgcc1 libglib2.0-0 libgtk-3-0 libnspr4 libnss3 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release wget xdg-utils
         
-    - name: Setup environment
+    - name: Setup Firebase credentials
       run: |
-        mkdir -p secrets
-        mkdir -p logs
+        cd gpp-agent-temp
         echo '${{ secrets.FIREBASE_ADMIN_SDK_JSON }}' > secrets/globalpp-1-firebase-adminsdk-fbsvc.json
         echo "GPP Agent started at $(date)" > logs/agent.log
         
-    - name: Debug - Check file structure
+    - name: Debug environment
       run: |
+        cd gpp-agent-temp
         echo "Current directory: $(pwd)"
         echo "Files in current directory:"
         ls -la
@@ -75,31 +103,55 @@ jobs:
         ls -la agents/ || echo "agents directory not found"
         echo "Files in modules directory:"
         ls -la modules/ || echo "modules directory not found"
+        echo "Installed packages:"
+        npm list --depth=0
         
-    - name: Run GPP Agent with debug
+        # Check for any mido references
+        echo "Checking for mido references in files:"
+        find . -name "*.js" -exec grep -l "mido" {} \; || echo "No mido references found in JS files"
+        
+        # Test basic module loading
+        echo "Testing module loading..."
+        node -e "
+          try {
+            console.log('Testing basic require...');
+            const fs = require('fs');
+            console.log('✅ fs module loaded');
+            
+            console.log('Testing puppeteer...');
+            const puppeteer = require('puppeteer');
+            console.log('✅ puppeteer module loaded');
+            
+            console.log('Testing firebase-admin...');
+            const admin = require('firebase-admin');
+            console.log('✅ firebase-admin module loaded');
+            
+          } catch (e) {
+            console.log('❌ Module test failed:', e.message);
+          }
+        "
+        
+    - name: Run GPP Agent (JavaScript only)
       env:
         CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
         GMAIL_USER: ${{ secrets.GMAIL_USER }}
         GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
       run: |
-        echo "🚀 Starting GPP Agent..."
+        cd gpp-agent-temp
+        echo "🚀 Starting GPP Agent (JavaScript version)..."
         echo "Environment variables:"
         echo "CLAUDE_API_KEY: ${CLAUDE_API_KEY:0:10}..."
         echo "GMAIL_USER: $GMAIL_USER"
         echo "ADMIN_EMAIL: $ADMIN_EMAIL"
         
-        # Try to run the agent using the temp directory
-        cd gpp-agent-temp
-        npx tsx ../agents/gpp-agent.agent.ts || {
-          echo "GPP Agent failed with exit code $?"
-          echo "Trying alternative approach..."
-          node -e "
-            console.log('Testing basic Node.js execution...');
-            console.log('Current directory:', process.cwd());
-            console.log('Available modules:', Object.keys(require.cache));
-          "
-        }
+        # Verify we're running the JavaScript file
+        echo "📄 Checking file to run:"
+        ls -la agents/gpp-agent.js
         
-        echo "GPP Agent execution completed at $(date)" >> ../logs/agent.log
+        # Run the JavaScript version only
+        echo "Running JavaScript agent..."
+        node agents/gpp-agent.js
+        
+        echo "GPP Agent execution completed at $(date)" >> logs/agent.log
         echo "✅ GPP Agent workflow completed successfully" 

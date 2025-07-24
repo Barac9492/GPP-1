@@ -11,7 +11,7 @@ export default agent(
     description: 'Autonomous agent that scrapes cross-border product prices and uploads to Firestore daily.',
     run: async () => {
       console.log('🚀 Starting GPP Agent...');
-      
+
       try {
         // Get trending products from Claude
         console.log('📊 Fetching trending products...');
@@ -42,10 +42,10 @@ export default agent(
 
         for (const [index, product] of products.entries()) {
           console.log(`Processing ${index + 1}/${products.length}: ${product.name}`);
-          
+
           try {
             const priceData = await scrapePrices(product.name, browser);
-            
+
             if (priceData && Object.keys(priceData).length > 0) {
               await uploadToFirestore(product, priceData);
               successes.push(product.name);
@@ -55,9 +55,9 @@ export default agent(
             }
           } catch (err) {
             const error = String(err);
-            failures.push({ 
-              name: product.name, 
-              error 
+            failures.push({
+              name: product.name,
+              error
             });
             console.error(`❌ Failed to process ${product.name}:`, error);
             await handleError(err, product);
@@ -81,7 +81,7 @@ export default agent(
 
         await browser.close();
         console.log('🎉 GPP Agent completed successfully');
-        
+
         return {
           success: true,
           summary: {
