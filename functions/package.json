@@ -1,0 +1,31 @@
+{
+  "name": "global-price-pulse-functions",
+  "description": "Cloud Functions for Global Price Pulse - AI-driven deal matching",
+  "scripts": {
+    "lint": "eslint .",
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "firebase-admin": "^11.11.0",
+    "firebase-functions": "^4.5.0",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.31.0",
+    "eslint": "^8.44.0",
+    "eslint-plugin-react": "^7.37.5",
+    "firebase-functions-test": "^3.1.0",
+    "globals": "^16.3.0"
+  },
+  "private": true
+}

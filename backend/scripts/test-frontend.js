@@ -1,0 +1,30 @@
+#!/usr/bin/env node
+
+console.log('🎯 Frontend Testing Guide');
+console.log('========================');
+console.log('');
+console.log('✅ Mock data has been added to Firebase Emulator');
+console.log('');
+console.log('📋 Available Quiz IDs for testing:');
+console.log('• AirPods Pro ($300): tTtEo1vGJyNXLdL769mL');
+console.log('• iPhone 15 Pro ($1000): Y98LRIJrpBuVtuZMhZvH');
+console.log('• MacBook Air M2 ($1200): tCytak3HSL28cKwXzeSK');
+console.log('');
+console.log('🌐 To test the frontend:');
+console.log('1. Open http://localhost:3000');
+console.log('2. Complete the quiz with any item');
+console.log('3. Or manually navigate to a quiz result using one of the IDs above');
+console.log('');
+console.log('📊 Check Firebase Emulator UI at http://localhost:4000');
+console.log('   → Go to Firestore → quizzes collection');
+console.log('');
+console.log('🔧 If you see "No deals found":');
+console.log('• Make sure Firebase emulator is running');
+console.log('• Check that the quiz ID exists in Firestore');
+console.log('• Verify the frontend is connected to emulator');
+console.log('');
+console.log('💡 Expected results:');
+console.log('• 5 deals per quiz with realistic prices');
+console.log('• Savings calculations working');
+console.log('• Proper budget display (no more $NaN)');
+console.log('• Responsive design on mobile'); 

@@ -1,0 +1,19 @@
+{
+  "projects": {
+    "default": "global-price-pulse",
+    "staging": "globalpp-1"
+  },
+  "targets": {
+    "globalpp-1": {
+      "hosting": {
+        "default": [
+          "globalpp-1"
+        ],
+        "custom-domain": [
+          "globalpp-info"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

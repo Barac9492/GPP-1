@@ -1,0 +1,101 @@
+import { agent, tools, define } from 'ai-functions';
+import { getTrendingProducts } from '../modules/claude_product_ideator';
+import { scrapePrices } from '../modules/scraper';
+import { uploadToFirestore } from '../modules/firestore_writer';
+import { handleError } from '../modules/self_healer';
+import { sendReport } from '../modules/notifier';
+
+export default agent(
+  define({
+    name: 'gpp-agent',
+    description: 'Autonomous agent that scrapes cross-border product prices and uploads to Firestore daily.',
+    run: async () => {
+      console.log('🚀 Starting GPP Agent...');
+      
+      try {
+        // Get trending products from Claude
+        console.log('📊 Fetching trending products...');
+        const products = await getTrendingProducts();
+        console.log(`Found ${products.length} trending products`);
+
+        // Launch browser with proper configuration
+        const browser = await tools.puppeteer.launch({
+          headless: true,
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu'
+          ],
+          userDataDir: '/Users/ethancho/Library/Application Support/Google/Chrome/Default'
+        });
+
+        const successes = [];
+        const failures = [];
+        const startTime = Date.now();
+
+        console.log('🔍 Starting price scraping...');
+
+        for (const [index, product] of products.entries()) {
+          console.log(`Processing ${index + 1}/${products.length}: ${product.name}`);
+          
+          try {
+            const priceData = await scrapePrices(product.name, browser);
+            
+            if (priceData && Object.keys(priceData).length > 0) {
+              await uploadToFirestore(product, priceData);
+              successes.push(product.name);
+              console.log(`✅ Successfully processed: ${product.name}`);
+            } else {
+              throw new Error('No price data retrieved');
+            }
+          } catch (err) {
+            const error = String(err);
+            failures.push({ 
+              name: product.name, 
+              error 
+            });
+            console.error(`❌ Failed to process ${product.name}:`, error);
+            await handleError(err, product);
+          }
+
+          // Add delay between requests to avoid rate limiting
+          if (index < products.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        }
+
+        const endTime = Date.now();
+        const duration = Math.round((endTime - startTime) / 1000);
+
+        console.log(`📈 Scraping completed in ${duration}s`);
+        console.log(`✅ Successes: ${successes.length}`);
+        console.log(`❌ Failures: ${failures.length}`);
+
+        // Send comprehensive report
+        await sendReport(successes, failures);
+
+        await browser.close();
+        console.log('🎉 GPP Agent completed successfully');
+        
+        return {
+          success: true,
+          summary: {
+            total: products.length,
+            successes: successes.length,
+            failures: failures.length,
+            duration
+          }
+        };
+
+      } catch (error) {
+        console.error('💥 Critical error in GPP Agent:', error);
+        await handleError(error, { name: 'GPP_AGENT_CRITICAL_ERROR' });
+        throw error;
+      }
+    }
+  })
+); 

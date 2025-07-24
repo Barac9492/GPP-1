@@ -1,0 +1,217 @@
+{
+  "timestamp": "2025-07-19T05:58:36.711Z",
+  "results": {
+    "environment": {
+      "Node.js Version": {
+        "success": true,
+        "message": "Node.js v24.2.0 (Compatible)"
+      },
+      "NPM Version": {
+        "success": true,
+        "message": "NPM 11.3.0"
+      },
+      "Redis Connection": {
+        "success": false,
+        "message": "Redis connection failed: "
+      },
+      "Environment Variables": {
+        "success": false,
+        "message": "Required: 0/2 present, Optional: 0/3 present"
+      },
+      "File Permissions": {
+        "success": true,
+        "message": "File permissions OK"
+      },
+      "Disk Space": {
+        "success": true,
+        "message": "Disk space available"
+      },
+      "Memory Available": {
+        "success": true,
+        "message": "Memory usage: 36.28MB"
+      }
+    },
+    "dependencies": {
+      "Redis Package": {
+        "success": true,
+        "message": "redis package available"
+      },
+      "Winston Package": {
+        "success": true,
+        "message": "winston package available"
+      },
+      "Axios Package": {
+        "success": true,
+        "message": "axios package available"
+      },
+      "Puppeteer Package": {
+        "success": true,
+        "message": "puppeteer package available"
+      },
+      "Cheerio Package": {
+        "success": true,
+        "message": "cheerio package available"
+      },
+      "Bull Package": {
+        "success": true,
+        "message": "bull package available"
+      },
+      "Package.json": {
+        "success": true,
+        "message": "Package.json valid (19 dependencies)"
+      },
+      "Node Modules": {
+        "success": true,
+        "message": "Node modules directory exists"
+      }
+    },
+    "connectivity": {
+      "Redis Connection": {
+        "success": false,
+        "message": "Redis connectivity failed: "
+      },
+      "External APIs": {
+        "success": true,
+        "message": "External API connectivity OK"
+      },
+      "Database Connection": {
+        "success": true,
+        "message": "Database connection not configured (using Redis)"
+      },
+      "Network Latency": {
+        "success": true,
+        "message": "Network latency: 1269ms"
+      },
+      "DNS Resolution": {
+        "success": true,
+        "message": "DNS resolution OK"
+      }
+    },
+    "functionality": {
+      "Manual Trigger Crawler": {
+        "success": false,
+        "message": "Manual trigger crawler failed: The client is closed"
+      },
+      "Knowledge Graph": {
+        "success": false,
+        "message": "Knowledge graph failed: The client is closed"
+      },
+      "User Engagement System": {
+        "success": false,
+        "message": "User engagement system failed: The client is closed"
+      },
+      "Data Processing": {
+        "success": true,
+        "message": "Data processing pipeline OK"
+      },
+      "Error Handling": {
+        "success": true,
+        "message": "Error handling working correctly"
+      },
+      "Logging System": {
+        "success": true,
+        "message": "Logging system working"
+      }
+    },
+    "performance": {
+      "Response Time": {
+        "success": true,
+        "message": "Response time: 101ms"
+      },
+      "Memory Usage": {
+        "success": true,
+        "message": "Memory usage: 49.95MB"
+      },
+      "CPU Usage": {
+        "success": true,
+        "message": "CPU performance: 4.38ms for 1M operations"
+      },
+      "Concurrent Connections": {
+        "success": false,
+        "message": "Concurrent connections failed: "
+      },
+      "Data Processing Speed": {
+        "success": true,
+        "message": "Data processing speed: 0ms for 1000 items"
+      }
+    },
+    "security": {
+      "Environment Variables Security": {
+        "success": true,
+        "message": "No sensitive env vars exposed"
+      },
+      "API Key Protection": {
+        "success": true,
+        "message": "API keys not configured (will use public APIs)"
+      },
+      "Data Encryption": {
+        "success": true,
+        "message": "Data encryption capabilities available"
+      },
+      "Input Validation": {
+        "success": true,
+        "message": "Input validation working"
+      },
+      "Rate Limiting": {
+        "success": true,
+        "message": "Rate limiting not implemented (will be added in production)"
+      },
+      "CORS Configuration": {
+        "success": true,
+        "message": "CORS configuration not implemented (will be added in production)"
+      }
+    },
+    "overall": "WARNING"
+  },
+  "recommendations": [
+    {
+      "category": "environment",
+      "check": "Redis Connection",
+      "issue": "Redis connection failed: ",
+      "priority": 3,
+      "action": "Install and start Redis server"
+    },
+    {
+      "category": "environment",
+      "check": "Environment Variables",
+      "issue": "Required: 0/2 present, Optional: 0/3 present",
+      "priority": 3,
+      "action": "Set required environment variables"
+    },
+    {
+      "category": "connectivity",
+      "check": "Redis Connection",
+      "issue": "Redis connectivity failed: ",
+      "priority": 3,
+      "action": "Install and start Redis server"
+    },
+    {
+      "category": "functionality",
+      "check": "Manual Trigger Crawler",
+      "issue": "Manual trigger crawler failed: The client is closed",
+      "priority": 2,
+      "action": "Check crawler dependencies and configuration"
+    },
+    {
+      "category": "functionality",
+      "check": "Knowledge Graph",
+      "issue": "Knowledge graph failed: The client is closed",
+      "priority": 2,
+      "action": "Verify Redis connection and graph initialization"
+    },
+    {
+      "category": "functionality",
+      "check": "User Engagement System",
+      "issue": "User engagement system failed: The client is closed",
+      "priority": 2,
+      "action": "Ensure all engagement system dependencies are installed"
+    },
+    {
+      "category": "performance",
+      "check": "Concurrent Connections",
+      "issue": "Concurrent connections failed: ",
+      "priority": 1,
+      "action": "Review configuration and dependencies"
+    }
+  ]
+}

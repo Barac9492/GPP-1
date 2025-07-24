@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read and write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Allow read and write access to quizzes for development (no auth required)
+    match /quizzes/{quizId} {
+      allow read, write: if true; // Allow public read/write access for development
+    }
+    
+    // Anyone can read deals (public data)
+    match /deals/{dealId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Users can read and write their own subscriptions
+    match /subscriptions/{subscriptionId} {
+      allow read, write: if request.auth != null && 
+        (resource == null || resource.data.userId == request.auth.uid);
+    }
+    
+    // Users can read and write their own affiliate clicks
+    match /affiliateClicks/{clickId} {
+      allow read, write: if request.auth != null && 
+        (resource == null || resource.data.userId == request.auth.uid);
+    }
+  }
+} 
