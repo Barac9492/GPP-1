@@ -49,7 +49,6 @@ jobs:
         # Copy only JavaScript files to temp directory
         cp -r ../agents ./
         cp -r ../modules ./
-        cp -r ../secrets ./
         mkdir -p logs
         
         # Remove TypeScript files to avoid conflicts
@@ -90,6 +89,7 @@ jobs:
     - name: Setup Firebase credentials
       run: |
         cd gpp-agent-temp
+        mkdir -p secrets
         echo '${{ secrets.FIREBASE_ADMIN_SDK_JSON }}' > secrets/globalpp-1-firebase-adminsdk-fbsvc.json
         echo "GPP Agent started at $(date)" > logs/agent.log
         
@@ -103,6 +103,8 @@ jobs:
         ls -la agents/ || echo "agents directory not found"
         echo "Files in modules directory:"
         ls -la modules/ || echo "modules directory not found"
+        echo "Files in secrets directory:"
+        ls -la secrets/ || echo "secrets directory not found"
         echo "Installed packages:"
         npm list --depth=0
         
