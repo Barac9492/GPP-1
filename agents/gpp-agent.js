@@ -1,14 +1,14 @@
 const puppeteer = require('puppeteer');
 
 // Import modules with explicit error handling
-let getTrendingProducts, scrapePrices, uploadToFirestore, handleError, sendReport;
+let fetchTrendingProducts, scrapePrices, uploadToFirestore, handleError, sendReport;
 
 try {
   console.log('📦 Loading modules...');
   
-  const claudeModule = require('../modules/claude_product_ideator');
-  getTrendingProducts = claudeModule.getTrendingProducts;
-  console.log('✅ Claude module loaded');
+  const openaiModule = require('../modules/openai_product_ideator');
+  fetchTrendingProducts = openaiModule.fetchTrendingProducts;
+  console.log('✅ OpenAI product ideator module loaded');
   
   const scraperModule = require('../modules/scraper');
   scrapePrices = scraperModule.scrapePrices;
@@ -35,9 +35,9 @@ async function runGPPAgent() {
   console.log('🚀 Starting GPP Agent...');
 
   try {
-    // Get trending products from Claude
+    // Get trending products from OpenAI
     console.log('📊 Fetching trending products...');
-    const products = await getTrendingProducts();
+    const products = await fetchTrendingProducts();
     console.log(`Found ${products.length} trending products`);
 
     // Launch browser with improved configuration for CI/CD
@@ -69,26 +69,26 @@ async function runGPPAgent() {
     console.log('🔍 Starting price scraping...');
 
     for (const [index, product] of products.entries()) {
-      console.log(`Processing ${index + 1}/${products.length}: ${product.name}`);
+      console.log(`Processing ${index + 1}/${products.length}: ${product}`);
 
       try {
-        const priceData = await scrapePrices(product.name, browser);
+        const priceData = await scrapePrices(product, browser);
 
         if (priceData && Object.keys(priceData).length > 0) {
-          await uploadToFirestore(product, priceData);
-          successes.push(product.name);
-          console.log(`✅ Successfully processed: ${product.name}`);
+          await uploadToFirestore({ name: product }, priceData);
+          successes.push(product);
+          console.log(`✅ Successfully processed: ${product}`);
         } else {
           throw new Error('No price data retrieved');
         }
       } catch (err) {
         const error = String(err);
         failures.push({
-          name: product.name,
+          name: product,
           error
         });
-        console.error(`❌ Failed to process ${product.name}:`, error);
-        await handleError(err, product);
+        console.error(`❌ Failed to process ${product}:`, error);
+        await handleError(err, { name: product });
       }
 
       // Add delay between requests to avoid rate limiting
