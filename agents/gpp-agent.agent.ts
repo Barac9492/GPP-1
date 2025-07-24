@@ -18,7 +18,7 @@ export default agent(
         const products = await getTrendingProducts();
         console.log(`Found ${products.length} trending products`);
 
-        // Launch browser with proper configuration
+        // Launch browser with proper configuration for CI/CD
         const browser = await tools.puppeteer.launch({
           headless: true,
           args: [
@@ -28,9 +28,10 @@ export default agent(
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
-            '--disable-gpu'
-          ],
-          userDataDir: '/Users/ethancho/Library/Application Support/Google/Chrome/Default'
+            '--disable-gpu',
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor'
+          ]
         });
 
         const successes = [];
