@@ -35,6 +35,9 @@ jobs:
       run: |
         echo '${{ secrets.FIREBASE_ADMIN_SDK_JSON }}' > secrets/globalpp-1-firebase-adminsdk-fbsvc.json
         
+    - name: Create logs directory
+      run: mkdir -p logs
+      
     - name: Run GPP Agent
       env:
         CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
@@ -44,10 +47,7 @@ jobs:
       run: |
         npx tsx agents/gpp-agent.agent.ts || echo "GPP Agent failed but continuing..."
         echo "GPP Agent execution completed" > logs/execution.log
-      
-    - name: Create logs directory
-      run: mkdir -p logs
-      
+        
     - name: Create dummy log files
       run: |
         echo "GPP Agent started at $(date)" > logs/agent.log
