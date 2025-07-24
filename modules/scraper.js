@@ -93,28 +93,63 @@ async function scrapeUSSites(productName, browser) {
 }
 
 async function scrapeSite(site, productName, browser) {
+  let page = null;
+  
   try {
-    const page = await browser.newPage();
+    page = await browser.newPage();
     
-    // Set user agent to avoid detection
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+    // Set realistic user agent and viewport
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36');
+    await page.setViewport({ width: 1280, height: 800 });
     
-    // Navigate to search page
+    // Set extra headers to avoid detection
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    });
+    
+    // Navigate to search page with retry logic
     const searchUrl = getSearchUrl(site, productName);
-    await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+    console.log(`🌐 Navigating to: ${searchUrl}`);
+    
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      try {
+        await page.goto(searchUrl, { 
+          waitUntil: 'networkidle2', 
+          timeout: 30000 
+        });
+        break;
+      } catch (error) {
+        retryCount++;
+        console.log(`⚠️ Retry ${retryCount}/${maxRetries} for ${site}: ${error.message}`);
+        if (retryCount >= maxRetries) {
+          throw error;
+        }
+        await page.waitForTimeout(2000);
+      }
+    }
     
     // Wait for content to load
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(3000);
     
     // Extract price using selectors
     const price = await extractPrice(page, site);
     
-    await page.close();
     return price;
     
   } catch (error) {
     console.error(`❌ Error scraping ${site}:`, error.message);
     return null;
+  } finally {
+    if (page) {
+      await page.close();
+    }
   }
 }
 
@@ -129,6 +164,8 @@ function getSearchUrl(site, productName) {
     return `https://www.oliveyoung.co.kr/store/search/getSearchMain.do?query=${encodedProduct}`;
   } else if (site.includes('lotte.com')) {
     return `https://www.lotte.com/search/search.do?search=${encodedProduct}`;
+  } else if (site.includes('coupang.com')) {
+    return `https://www.coupang.com/np/search?q=${encodedProduct}`;
   } else {
     return `${site}/search?q=${encodedProduct}`;
   }
@@ -145,6 +182,7 @@ async function extractPrice(page, site) {
           const text = await page.evaluate(el => el.textContent, element);
           const price = parsePrice(text);
           if (price) {
+            console.log(`💰 Found price on ${site}: ${price}`);
             return price;
           }
         }
@@ -152,6 +190,11 @@ async function extractPrice(page, site) {
         continue;
       }
     }
+    
+    // Debug: log page content if no price found
+    console.log(`🔍 No price found on ${site}, checking page content...`);
+    const pageContent = await page.content();
+    console.log(`📄 Page content length: ${pageContent.length} characters`);
     
     return null;
     
@@ -166,24 +209,35 @@ function getPriceSelectors(site) {
     return [
       '.a-price-whole',
       '.a-price .a-offscreen',
-      '[data-a-color="price"] .a-offscreen'
+      '[data-a-color="price"] .a-offscreen',
+      '.a-price-range .a-offscreen'
     ];
   } else if (site.includes('bestbuy.com')) {
     return [
       '.priceView-customer-price span',
-      '.priceView-layout-large .priceView-price'
+      '.priceView-layout-large .priceView-price',
+      '.priceView-hero-price'
     ];
   } else if (site.includes('oliveyoung.co.kr')) {
     return [
       '.price',
       '.prd_price',
-      '.price_info'
+      '.price_info',
+      '.price-value'
+    ];
+  } else if (site.includes('coupang.com')) {
+    return [
+      '.price-value',
+      '.price',
+      '.price-info',
+      '.product-price'
     ];
   } else {
     return [
       '.price',
       '[class*="price"]',
-      '[class*="Price"]'
+      '[class*="Price"]',
+      '.product-price'
     ];
   }
 }

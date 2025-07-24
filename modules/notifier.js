@@ -45,14 +45,18 @@ ${failures.map(failure => `• ${failure.name}: ${failure.error}`).join('\n')}
 
 async function sendEmailReport(report) {
   try {
-    // Create transporter
-    const transporter = nodemailer.createTransporter({
+    console.log('📧 Creating email transporter...');
+    
+    // Create transporter with correct function name
+    const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: process.env.GMAIL_USER,
         pass: process.env.GMAIL_APP_PASSWORD
       }
     });
+    
+    console.log('📧 Email transporter created successfully');
     
     // Email options
     const mailOptions = {
@@ -62,6 +66,8 @@ async function sendEmailReport(report) {
       text: report.body,
       html: report.body.replace(/\n/g, '<br>')
     };
+    
+    console.log('📧 Sending email...');
     
     // Send email
     const info = await transporter.sendMail(mailOptions);

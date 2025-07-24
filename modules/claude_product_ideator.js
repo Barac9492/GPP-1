@@ -63,7 +63,7 @@ async function getTrendingProducts() {
     console.log('🤖 Asking Claude for trending products...');
     
     const message = await anthropic.messages.create({
-      model: 'claude-3-sonnet-20240229',
+      model: 'claude-4-sonnet-20250522',
       max_tokens: 1000,
       messages: [{
         role: 'user',

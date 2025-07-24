@@ -40,9 +40,9 @@ async function runGPPAgent() {
     const products = await getTrendingProducts();
     console.log(`Found ${products.length} trending products`);
 
-    // Launch browser with proper configuration for CI/CD
+    // Launch browser with improved configuration for CI/CD
     const browser = await puppeteer.launch({
-      headless: true,
+      headless: 'new',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -52,7 +52,13 @@ async function runGPPAgent() {
         '--no-zygote',
         '--disable-gpu',
         '--disable-web-security',
-        '--disable-features=VizDisplayCompositor'
+        '--disable-features=VizDisplayCompositor',
+        '--disable-http2',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-features=TranslateUI',
+        '--disable-ipc-flooding-protection'
       ]
     });
 
@@ -87,7 +93,7 @@ async function runGPPAgent() {
 
       // Add delay between requests to avoid rate limiting
       if (index < products.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
     }
 
