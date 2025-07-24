@@ -1,6 +1,6 @@
 {
   "projects": {
-    "default": "global-price-pulse",
+    "default": "globalpp-1",
     "staging": "globalpp-1"
   },
   "targets": {

@@ -17,4 +17,4 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_ADMIN_SDK_JSON }}
           channelId: live
-          projectId: global-price-pulse
+          projectId: globalpp-1
