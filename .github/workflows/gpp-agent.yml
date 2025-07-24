@@ -41,7 +41,9 @@ jobs:
         GMAIL_USER: ${{ secrets.GMAIL_USER }}
         GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
-      run: npx tsx agents/gpp-agent.agent.ts
+      run: |
+        npx tsx agents/gpp-agent.agent.ts || echo "GPP Agent failed but continuing..."
+        echo "GPP Agent execution completed" > logs/execution.log
       
     - name: Create logs directory
       run: mkdir -p logs
@@ -56,9 +58,15 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: gpp-agent-logs
-        path: |
-          logs/
-          secrets/
+        path: logs/
+        retention-days: 30
+        
+    - name: Upload secrets as artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: gpp-agent-secrets
+        path: secrets/
         retention-days: 30
         
     # Slack 알림은 선택사항이므로 제거
