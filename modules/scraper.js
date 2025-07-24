@@ -1,4 +1,6 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
 
 // Site configurations
 const SITES = {
@@ -97,12 +99,9 @@ async function scrapeSite(site, productName, browser) {
   
   try {
     page = await browser.newPage();
-    
-    // Set realistic user agent and viewport
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36');
     await page.setViewport({ width: 1280, height: 800 });
-    
-    // Set extra headers to avoid detection
+    page.setDefaultNavigationTimeout(60000);
     await page.setExtraHTTPHeaders({
       'Accept-Language': 'en-US,en;q=0.9',
       'Accept-Encoding': 'gzip, deflate, br',
@@ -110,6 +109,10 @@ async function scrapeSite(site, productName, browser) {
       'Cache-Control': 'no-cache',
       'Pragma': 'no-cache'
     });
+    
+    // Random delay and mouse movement to mimic human
+    await page.waitForTimeout(Math.random() * 2000 + 1000);
+    await page.mouse.move(Math.random() * 500, Math.random() * 500);
     
     // Navigate to search page with retry logic
     const searchUrl = getSearchUrl(site, productName);
@@ -122,7 +125,7 @@ async function scrapeSite(site, productName, browser) {
       try {
         await page.goto(searchUrl, { 
           waitUntil: 'networkidle2', 
-          timeout: 30000 
+          timeout: 60000 
         });
         break;
       } catch (error) {
@@ -136,10 +139,25 @@ async function scrapeSite(site, productName, browser) {
     }
     
     // Wait for content to load
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(Math.random() * 2000 + 1000);
     
-    // Extract price using selectors
-    const price = await extractPrice(page, site);
+    // Improved price extraction logic
+    const price = await page.evaluate(() => {
+      const selectors = [
+        '.a-price .a-offscreen', // Amazon
+        '.priceView-hero-price span', // BestBuy
+        '.prod-sale-price .total-price strong', // Coupang
+        '.price', '.prd_price', '.price_info', '.price-value', // Olive Young, Lotte
+      ];
+      for (const sel of selectors) {
+        const el = document.querySelector(sel);
+        if (el && el.innerText.match(/[$₩]\d+/)) return el.innerText.trim();
+      }
+      // Fallback: 모든 엘리먼트에서 $/₩ 포함 텍스트 탐색
+      const priceElems = Array.from(document.querySelectorAll('*')).filter(el => el.textContent?.match(/[$₩]\d+/));
+      return priceElems[0]?.textContent?.trim() || null;
+    });
+    if (price) console.log(`Found price: ${price}`);
     
     return price;
     
@@ -169,91 +187,6 @@ function getSearchUrl(site, productName) {
   } else {
     return `${site}/search?q=${encodedProduct}`;
   }
-}
-
-async function extractPrice(page, site) {
-  try {
-    const selectors = getPriceSelectors(site);
-    
-    for (const selector of selectors) {
-      try {
-        const element = await page.$(selector);
-        if (element) {
-          const text = await page.evaluate(el => el.textContent, element);
-          const price = parsePrice(text);
-          if (price) {
-            console.log(`💰 Found price on ${site}: ${price}`);
-            return price;
-          }
-        }
-      } catch (error) {
-        continue;
-      }
-    }
-    
-    // Debug: log page content if no price found
-    console.log(`🔍 No price found on ${site}, checking page content...`);
-    const pageContent = await page.content();
-    console.log(`📄 Page content length: ${pageContent.length} characters`);
-    
-    return null;
-    
-  } catch (error) {
-    console.error(`❌ Error extracting price from ${site}:`, error.message);
-    return null;
-  }
-}
-
-function getPriceSelectors(site) {
-  if (site.includes('amazon.com')) {
-    return [
-      '.a-price-whole',
-      '.a-price .a-offscreen',
-      '[data-a-color="price"] .a-offscreen',
-      '.a-price-range .a-offscreen'
-    ];
-  } else if (site.includes('bestbuy.com')) {
-    return [
-      '.priceView-customer-price span',
-      '.priceView-layout-large .priceView-price',
-      '.priceView-hero-price'
-    ];
-  } else if (site.includes('oliveyoung.co.kr')) {
-    return [
-      '.price',
-      '.prd_price',
-      '.price_info',
-      '.price-value'
-    ];
-  } else if (site.includes('coupang.com')) {
-    return [
-      '.price-value',
-      '.price',
-      '.price-info',
-      '.product-price'
-    ];
-  } else {
-    return [
-      '.price',
-      '[class*="price"]',
-      '[class*="Price"]',
-      '.product-price'
-    ];
-  }
-}
-
-function parsePrice(text) {
-  if (!text) return null;
-  
-  // Extract numbers and currency symbols
-  const priceMatch = text.match(/[\$₩]?[\d,]+\.?\d*/);
-  if (priceMatch) {
-    const price = priceMatch[0].replace(/[^\d.]/g, '');
-    const numPrice = parseFloat(price);
-    return isNaN(numPrice) ? null : numPrice;
-  }
-  
-  return null;
 }
 
 module.exports = { scrapePrices }; 
