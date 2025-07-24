@@ -1,0 +1,26 @@
+{
+  "name": "gpp-agent",
+  "version": "1.0.0",
+  "description": "GPP Agent for cross-border price scraping",
+  "main": "agents/gpp-agent.agent.ts",
+  "scripts": {
+    "start": "tsx agents/gpp-agent.agent.ts",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.18.0",
+    "ai-functions": "^0.1.0",
+    "firebase-admin": "^12.0.0",
+    "nodemailer": "^6.9.0",
+    "puppeteer": "^21.0.0"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^6.4.0",
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  },
+  "keywords": ["agent", "scraping", "pricing", "firebase"],
+  "author": "GPP Team",
+  "license": "MIT"
+} 
