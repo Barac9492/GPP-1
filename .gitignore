@@ -25,6 +25,7 @@ yarn-error.log*
 .firebase/
 firebase-debug.log
 firestore-debug.log
+globalpp-1-351b8015eac1.json
 
 # Agent specific
 secrets/
